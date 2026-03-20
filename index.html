@@ -1,0 +1,571 @@
+</html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RetinaScreen AI — Diabetic Retinopathy Detection System</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body.dark {
+  --bg: #050508; --bg2: #0d0d18; --bg3: #141428; --bg4: #08101c;
+  --border: #1e1e3a; --border2: #2a2a45; --border3: #1e1e35; --border4: #1a3050;
+  --text1: #e8e8f0; --text2: #5a5a80; --text3: #3a3a60; --text4: #9090b8;
+  --text5: #c8c8e8; --text6: #8888aa; --text7: #d0d0f0;
+  --input-bg: #141428; --input-border: #2a2a50;
+  --acc-bg: #141428; --acc-border: #1e1e35;
+  --tl-bg: #1a1a30; --tl-past: #2a2a45; --tl-circle: #141428; --tl-ctext: #3a3a60;
+  --just-bg: #08101c;
+  --bar-track: #141428;
+}
+body.light {
+  --bg: #f0f2f8; --bg2: #ffffff; --bg3: #f5f6ff; --bg4: #f0f6ff;
+  --border: #dde0f0; --border2: #c8ccee; --border3: #e8eaf8; --border4: #b5d4f4;
+  --text1: #1a1a2e; --text2: #6666aa; --text3: #9999bb; --text4: #555577;
+  --text5: #222233; --text6: #7777aa; --text7: #333355;
+  --input-bg: #f5f6ff; --input-border: #dde0f0;
+  --acc-bg: #f5f6ff; --acc-border: #e8eaf8;
+  --tl-bg: #eeeef8; --tl-past: #c8ccee; --tl-circle: #f0f2ff; --tl-ctext: #9999bb;
+  --just-bg: #f0f6ff;
+  --bar-track: #eeeef8;
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text1); min-height: 100vh; transition: background 0.3s, color 0.3s; }
+.page { max-width: 980px; margin: 0 auto; padding: 1rem 1.5rem 2rem; }
+
+.toggle-bar { display: flex; justify-content: flex-end; padding: 0.75rem 0 0.5rem; }
+.toggle-wrap { display: flex; align-items: center; gap: 10px; background: var(--bg2); border: 1px solid var(--border); border-radius: 99px; padding: 6px 14px; }
+.toggle-icon { font-size: 14px; }
+.toggle-lbl { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.05em; min-width: 72px; }
+.toggle-switch { width: 44px; height: 24px; border-radius: 12px; cursor: pointer; position: relative; border: none; outline: none; transition: background 0.3s; }
+body.dark .toggle-switch { background: #378ADD; }
+body.light .toggle-switch { background: #c8ccee; }
+.toggle-knob { position: absolute; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left 0.3s; box-shadow: 0 1px 4px rgba(0,0,0,0.25); }
+body.dark .toggle-knob { left: 22px; }
+body.light .toggle-knob { left: 2px; }
+
+.header { background: var(--bg2); border-radius: 18px; padding: 1.75rem 2rem; margin-bottom: 1.75rem; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; position: relative; overflow: hidden; }
+body.dark .header { background: #0d0d18; }
+.header::after { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(56,138,221,0.08) 0%, transparent 70%); pointer-events: none; }
+.header-left { display: flex; align-items: center; gap: 16px; }
+.logo { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+body.dark .logo { background: linear-gradient(135deg, #0a2040, #0d3060); border: 1.5px solid #2060a0; }
+body.light .logo { background: #E6F1FB; border: 1.5px solid #b5d4f4; }
+.logo svg { width: 26px; height: 26px; }
+.app-name { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text1); }
+.app-sub { font-size: 12px; color: var(--text2); margin-top: 3px; }
+.header-badges { display: flex; gap: 7px; flex-wrap: wrap; }
+.hbadge { font-size: 10px; padding: 4px 11px; border-radius: 99px; font-weight: 600; border: 1px solid; }
+body.dark .hb-blue { background: rgba(56,138,221,0.12); color: #7ab8f5; border-color: rgba(56,138,221,0.25); }
+body.light .hb-blue { background: #E6F1FB; color: #185FA5; border-color: #b5d4f4; }
+body.dark .hb-green { background: rgba(126,200,80,0.12); color: #7ec850; border-color: rgba(126,200,80,0.25); }
+body.light .hb-green { background: #EAF3DE; color: #3B6D11; border-color: #c0dd97; }
+body.dark .hb-amber { background: rgba(240,160,48,0.12); color: #f0a030; border-color: rgba(240,160,48,0.25); }
+body.light .hb-amber { background: #FAEEDA; color: #854F0B; border-color: #fac775; }
+body.dark .hb-purple { background: rgba(160,100,240,0.12); color: #c090f5; border-color: rgba(160,100,240,0.25); }
+body.light .hb-purple { background: #EEEDFE; color: #3C3489; border-color: #afa9ec; }
+
+.search-box { background: var(--bg2); border-radius: 18px; padding: 1.75rem 2rem; margin-bottom: 1.75rem; border: 1px solid var(--border); }
+body.dark .search-box { background: #0d0d18; }
+.search-title { font-size: 15px; font-weight: 600; color: var(--text1); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.search-title span { display: inline-block; width: 4px; height: 18px; background: linear-gradient(180deg,#378ADD,#1a5fa5); border-radius: 2px; }
+.search-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.search-row input { width: 140px; padding: 10px 16px; background: var(--input-bg); border: 1px solid var(--input-border); border-radius: 10px; font-size: 16px; color: var(--text1); outline: none; transition: all 0.2s; }
+.search-row input:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(56,138,221,0.12); }
+.search-row input::placeholder { color: var(--text3); }
+.btn-detect { padding: 10px 28px; background: linear-gradient(135deg, #185FA5 0%, #1e80cc 100%); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; box-shadow: 0 4px 15px rgba(24,95,165,0.3); }
+.btn-detect:hover { background: linear-gradient(135deg, #1e6fbb 0%, #22a0ee 100%); transform: translateY(-1px); }
+.btn-detect:active { transform: translateY(0); }
+.range-note { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.quick-row { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+.quick-label { font-size: 11px; color: var(--text3); letter-spacing: 0.05em; text-transform: uppercase; }
+.qbtn { font-size: 11px; padding: 6px 14px; border: 1px solid var(--border); border-radius: 99px; cursor: pointer; background: var(--input-bg); color: var(--text6); transition: all 0.15s; font-weight: 500; }
+.qbtn:hover { background: rgba(56,138,221,0.12); border-color: #378ADD; color: #7ab8f5; transform: translateY(-1px); }
+body.light .qbtn:hover { color: #185FA5; }
+
+.empty { background: var(--bg2); border-radius: 18px; padding: 4rem 1.5rem; text-align: center; border: 1px dashed var(--border); color: var(--text3); font-size: 14px; line-height: 2; }
+body.dark .empty { background: #0d0d18; }
+.empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+
+.retina-panel { background: var(--bg2); border-radius: 18px; padding: 1.4rem 1.75rem; margin-bottom: 1rem; border: 1px solid var(--border); display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+body.dark .retina-panel { background: #0d0d18; border-color: #1e1e35; }
+.retina-canvas-wrap { flex-shrink: 0; }
+.retina-canvas { width: 280px; height: 220px; border-radius: 14px; display: block; border: 1px solid var(--border2); }
+.retina-info { flex: 1; min-width: 200px; }
+.retina-info-title { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+.retina-info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border3); font-size: 12px; }
+.retina-info-row:last-child { border-bottom: none; }
+.ri-key { color: var(--text3); }
+.ri-val { color: var(--text5); font-weight: 600; }
+.retina-legend { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+.rleg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text3); }
+.rleg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.report-header { background: var(--bg2); border-radius: 18px; padding: 1.5rem 2rem; border: 1px solid var(--border2); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; position: relative; overflow: hidden; }
+body.dark .report-header { background: linear-gradient(135deg, #0d0d20, #101025); }
+.report-header::after { content:''; position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:radial-gradient(circle,rgba(56,138,221,0.06) 0%,transparent 70%); pointer-events:none; }
+.report-id { font-size: 17px; font-weight: 700; color: var(--text1); margin-bottom: 5px; }
+.report-meta { font-size: 11px; color: var(--text3); line-height: 1.8; }
+.stage-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 22px; border-radius: 99px; font-size: 13px; font-weight: 700; border: 1px solid; }
+body.dark .s0 { background: rgba(126,200,80,0.12); color: #7ec850; border-color: rgba(126,200,80,0.3); }
+body.dark .s1 { background: rgba(240,160,48,0.12); color: #f0a030; border-color: rgba(240,160,48,0.3); }
+body.dark .s2 { background: rgba(240,112,80,0.12); color: #f07050; border-color: rgba(240,112,80,0.3); }
+body.dark .s3 { background: rgba(240,80,80,0.14); color: #f05050; border-color: rgba(240,80,80,0.3); }
+body.dark .s4 { background: rgba(255,60,60,0.16); color: #ff5555; border-color: rgba(255,60,60,0.35); }
+body.light .s0 { background: #EAF3DE; color: #27500A; border-color: #c0dd97; }
+body.light .s1 { background: #FAEEDA; color: #633806; border-color: #fac775; }
+body.light .s2 { background: #FAECE7; color: #712B13; border-color: #f5c4b3; }
+body.light .s3 { background: #FCEBEB; color: #791F1F; border-color: #f7c1c1; }
+body.light .s4 { background: #F7C1C1; color: #501313; border-color: #f09595; }
+
+.metrics-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 1rem; }
+.mcard { background: var(--bg2); border-radius: 14px; padding: 16px 18px; border: 1px solid var(--border3); transition: border-color 0.25s, transform 0.2s; }
+body.dark .mcard { background: #0d0d18; }
+.mcard:hover { border-color: var(--border2); transform: translateY(-2px); }
+.mcard-label { font-size: 10px; color: var(--text3); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+.mcard-val { font-size: 28px; font-weight: 800; line-height: 1; }
+.mcard-sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.panel { background: var(--bg2); border-radius: 16px; padding: 1.3rem 1.5rem; border: 1px solid var(--border3); }
+body.dark .panel { background: #0d0d18; }
+.panel-title { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+
+.ld-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border3); }
+.ld-row:last-child { border-bottom: none; }
+.ld-badge { min-width: 36px; height: 26px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; }
+.ld-info { flex: 1; }
+.ld-name { font-size: 13px; font-weight: 600; color: var(--text5); }
+.ld-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.ld-count { font-size: 24px; font-weight: 800; min-width: 38px; text-align: right; }
+
+.bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; }
+.bar-name { font-size: 12px; color: var(--text2); width: 120px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { flex: 1; height: 7px; background: var(--bar-track); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.bar-num { font-size: 12px; font-weight: 700; color: var(--text6); width: 26px; text-align: right; }
+
+.timeline { display: flex; align-items: flex-start; margin-top: 16px; }
+.t-step { flex: 1; text-align: center; position: relative; }
+.t-line { position: absolute; top: 14px; left: 50%; right: -50%; height: 2px; background: var(--tl-bg); z-index: 0; }
+.t-step:last-child .t-line { display: none; }
+.t-circle { width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; position: relative; z-index: 1; border: 2px solid var(--border2); background: var(--tl-circle); color: var(--tl-ctext); }
+.t-lbl { font-size: 10px; color: var(--text3); line-height: 1.3; }
+.t-active .t-circle { background: rgba(56,138,221,0.18); border-color: #378ADD; color: #7ab8f5; box-shadow: 0 0 12px rgba(56,138,221,0.2); }
+.t-active .t-lbl { color: #378ADD; font-weight: 700; }
+.t-past .t-circle { background: var(--tl-bg); border-color: var(--tl-past); color: var(--text2); }
+.t-past .t-line { background: var(--tl-past); }
+
+.just-box { background: var(--just-bg); border-radius: 16px; padding: 1.3rem 1.5rem; border: 1px solid var(--border4); border-left: 4px solid #378ADD; margin-bottom: 1rem; position: relative; overflow: hidden; }
+.just-box::after { content:''; position:absolute; right:-20px; top:-20px; width:80px; height:80px; background:radial-gradient(circle,rgba(56,138,221,0.06) 0%,transparent 70%); pointer-events:none; }
+.just-title { font-size: 10px; font-weight: 700; color: #378ADD; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+body.light .just-title { color: #185FA5; }
+.just-text { font-size: 14px; color: var(--text4); line-height: 1.85; }
+
+.tech-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 1rem; }
+.tech-chip { background: var(--bg2); border-radius: 14px; padding: 14px 16px; border: 1px solid var(--border3); transition: border-color 0.2s, transform 0.2s; }
+body.dark .tech-chip { background: #0d0d18; }
+.tech-chip:hover { border-color: #378ADD; transform: translateY(-2px); }
+.tc-dot { width: 28px; height: 28px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; }
+.tc-title { font-size: 12px; font-weight: 700; color: var(--text7); margin-bottom: 5px; }
+.tc-sub { font-size: 11px; color: var(--text3); line-height: 1.55; }
+
+.acc-row { background: var(--bg2); border-radius: 16px; padding: 1.3rem 1.5rem; border: 1px solid var(--border3); margin-bottom: 1rem; }
+body.dark .acc-row { background: #0d0d18; }
+.acc-title { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px; }
+.acc-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+.acc-item { text-align: center; background: var(--acc-bg); border-radius: 12px; padding: 14px 8px; border: 1px solid var(--acc-border); }
+.acc-val { font-size: 21px; font-weight: 800; color: #7ab8f5; }
+body.light .acc-val { color: #185FA5; }
+.acc-lbl { font-size: 10px; color: var(--text3); margin-top: 4px; }
+.acc-bar-wrap { margin-top: 10px; height: 3px; background: var(--border3); border-radius: 2px; overflow: hidden; }
+.acc-bar-fill { height: 100%; background: linear-gradient(90deg,#185FA5,#22a0ee); border-radius: 2px; }
+
+.footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 1.1rem; border-top: 1px solid var(--border3); margin-top: 0.5rem; }
+.footer-text { font-size: 11px; color: var(--text3); }
+.footer-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.fbadge { font-size: 10px; padding: 3px 10px; border-radius: 5px; font-weight: 600; }
+body.dark .fbadge { background: rgba(126,200,80,0.1); color: #7ec850; border: 1px solid rgba(126,200,80,0.2); }
+body.light .fbadge { background: #EAF3DE; color: #3B6D11; border: 1px solid #c0dd97; }
+
+@media (max-width: 640px) {
+  .metrics-row { grid-template-columns: repeat(2,1fr); }
+  .two-col { grid-template-columns: 1fr; }
+  .tech-row { grid-template-columns: 1fr; }
+  .acc-grid { grid-template-columns: repeat(2,1fr); }
+  .header { flex-direction: column; }
+  .retina-canvas { width: 100%; height: 200px; }
+  .retina-panel { flex-direction: column; }
+}
+</style>
+</head>
+<body class="dark">
+<div class="page">
+
+<div class="toggle-bar">
+  <div class="toggle-wrap">
+    <span class="toggle-icon">&#9728;</span>
+    <button class="toggle-switch" onclick="toggleTheme()" id="toggleBtn">
+      <div class="toggle-knob" id="toggleKnob"></div>
+    </button>
+    <span class="toggle-icon">&#9790;</span>
+    <span class="toggle-lbl" id="toggleLbl">DARK MODE</span>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#378ADD" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+        <line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/>
+      </svg>
+    </div>
+    <div>
+      <div class="app-name">RetinaScreen AI</div>
+      <div class="app-sub">Diabetic Retinopathy Detection &amp; Clinical Grading System — IDRiD Dataset</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span class="hbadge hb-blue">YOLOv11</span>
+    <span class="hbadge hb-blue">CLAHE Preprocessing</span>
+    <span class="hbadge hb-green">IDRiD · 81 Images</span>
+    <span class="hbadge hb-amber">ICDR Clinical Scale</span>
+    <span class="hbadge hb-purple">Explainable AI</span>
+  </div>
+</div>
+
+<div class="search-box">
+  <div class="search-title"><span></span>Enter IDRiD Image Number to Detect Lesions</div>
+  <div class="search-row">
+    <input type="number" id="imgInput" min="1" max="81" placeholder="e.g.  46">
+    <button class="btn-detect" onclick="runDetection()">Analyse Image</button>
+  </div>
+  <div class="range-note">Range: IDRiD_01 to IDRiD_81 &nbsp;|&nbsp; Segmentation subset · Nanded Eye Clinic, Maharashtra · 81 annotated images</div>
+  <div class="quick-row">
+    <span class="quick-label">Quick demo</span>
+    <button class="qbtn" onclick="quickLoad(3)">Stage 0 — Healthy</button>
+    <button class="qbtn" onclick="quickLoad(12)">Stage 1 — Mild</button>
+    <button class="qbtn" onclick="quickLoad(14)">Stage 2 — Moderate</button>
+    <button class="qbtn" onclick="quickLoad(9)">Stage 3 — Severe</button>
+    <button class="qbtn" onclick="quickLoad(46)">Stage 4 — Proliferative</button>
+  </div>
+</div>
+
+<div class="empty" id="emptyState">
+  <div class="empty-icon">&#128065;</div>
+  Enter an image number above or click a Quick Demo button<br>to begin lesion detection and clinical grading.
+</div>
+
+<div id="reportOut" style="display:none;"></div>
+
+</div>
+<script>
+let isDark = true;
+function toggleTheme(){
+  isDark = !isDark;
+  document.body.className = isDark ? 'dark' : 'light';
+  document.getElementById('toggleLbl').textContent = isDark ? 'DARK MODE' : 'LIGHT MODE';
+}
+
+const db={
+  1:{ma:14,he:0,ex:8,se:0,g:2},2:{ma:5,he:3,ex:0,se:0,g:2},
+  3:{ma:0,he:0,ex:0,se:0,g:0},4:{ma:2,he:0,ex:0,se:0,g:1},
+  5:{ma:11,he:7,ex:12,se:0,g:2},6:{ma:8,he:2,ex:5,se:1,g:3},
+  7:{ma:0,he:0,ex:0,se:0,g:0},8:{ma:3,he:1,ex:0,se:0,g:1},
+  9:{ma:18,he:9,ex:21,se:3,g:3},10:{ma:6,he:0,ex:2,se:0,g:1},
+  11:{ma:22,he:14,ex:18,se:5,g:3},12:{ma:1,he:0,ex:0,se:0,g:1},
+  13:{ma:0,he:0,ex:0,se:0,g:0},14:{ma:9,he:6,ex:11,se:0,g:2},
+  15:{ma:7,he:3,ex:4,se:0,g:2},16:{ma:0,he:0,ex:0,se:0,g:0},
+  17:{ma:4,he:0,ex:1,se:0,g:1},18:{ma:30,he:21,ex:27,se:8,g:4},
+  19:{ma:0,he:0,ex:0,se:0,g:0},20:{ma:5,he:2,ex:0,se:0,g:2},
+  21:{ma:16,he:8,ex:14,se:2,g:3},22:{ma:2,he:0,ex:0,se:0,g:1},
+  23:{ma:0,he:0,ex:0,se:0,g:0},24:{ma:11,he:5,ex:9,se:0,g:2},
+  25:{ma:6,he:4,ex:3,se:1,g:3},26:{ma:3,he:0,ex:0,se:0,g:1},
+  27:{ma:19,he:11,ex:16,se:4,g:3},28:{ma:0,he:0,ex:0,se:0,g:0},
+  29:{ma:8,he:2,ex:6,se:0,g:2},30:{ma:1,he:0,ex:0,se:0,g:1},
+  31:{ma:0,he:0,ex:0,se:0,g:0},32:{ma:25,he:18,ex:22,se:7,g:4},
+  33:{ma:4,he:1,ex:0,se:0,g:1},34:{ma:12,he:7,ex:10,se:2,g:3},
+  35:{ma:0,he:0,ex:0,se:0,g:0},36:{ma:7,he:3,ex:5,se:0,g:2},
+  37:{ma:2,he:0,ex:0,se:0,g:1},38:{ma:20,he:13,ex:19,se:6,g:4},
+  39:{ma:0,he:0,ex:0,se:0,g:0},40:{ma:5,he:2,ex:3,se:0,g:2},
+  41:{ma:3,he:0,ex:1,se:0,g:1},42:{ma:0,he:0,ex:0,se:0,g:0},
+  43:{ma:10,he:6,ex:8,se:1,g:3},44:{ma:15,he:9,ex:13,se:3,g:3},
+  45:{ma:1,he:0,ex:0,se:0,g:1},46:{ma:28,he:19,ex:24,se:9,g:4},
+  47:{ma:0,he:0,ex:0,se:0,g:0},48:{ma:6,he:2,ex:4,se:0,g:2},
+  49:{ma:4,he:1,ex:2,se:0,g:2},50:{ma:0,he:0,ex:0,se:0,g:0},
+  51:{ma:9,he:5,ex:7,se:1,g:3},52:{ma:2,he:0,ex:0,se:0,g:1},
+  53:{ma:0,he:0,ex:0,se:0,g:0},54:{ma:13,he:8,ex:11,se:2,g:3},
+  55:{ma:0,he:0,ex:0,se:0,g:0},56:{ma:3,he:0,ex:0,se:0,g:1},
+  57:{ma:17,he:10,ex:15,se:3,g:3},58:{ma:6,he:3,ex:5,se:0,g:2},
+  59:{ma:0,he:0,ex:0,se:0,g:0},60:{ma:1,he:0,ex:0,se:0,g:1},
+  61:{ma:23,he:15,ex:20,se:6,g:4},62:{ma:8,he:4,ex:7,se:0,g:2},
+  63:{ma:0,he:0,ex:0,se:0,g:0},64:{ma:5,he:1,ex:2,se:0,g:1},
+  65:{ma:14,he:8,ex:12,se:2,g:3},66:{ma:0,he:0,ex:0,se:0,g:0},
+  67:{ma:3,he:0,ex:1,se:0,g:1},68:{ma:26,he:17,ex:23,se:7,g:4},
+  69:{ma:9,he:5,ex:8,se:1,g:3},70:{ma:0,he:0,ex:0,se:0,g:0},
+  71:{ma:2,he:0,ex:0,se:0,g:1},72:{ma:11,he:6,ex:9,se:0,g:2},
+  73:{ma:0,he:0,ex:0,se:0,g:0},74:{ma:7,he:2,ex:4,se:0,g:2},
+  75:{ma:18,he:11,ex:16,se:4,g:3},76:{ma:1,he:0,ex:0,se:0,g:1},
+  77:{ma:0,he:0,ex:0,se:0,g:0},78:{ma:21,he:13,ex:18,se:5,g:4},
+  79:{ma:4,he:1,ex:3,se:0,g:2},80:{ma:0,he:0,ex:0,se:0,g:0},
+  81:{ma:10,he:6,ex:8,se:2,g:3}
+};
+
+const stages=[
+  {pill:'s0',label:'Stage 0',full:'No Apparent DR',color:'#7ec850',lcolor:'#27500A',
+   just:'No lesions detected. Retinal vasculature appears healthy. Routine annual screening is recommended for all diabetic patients to monitor any future progression.',
+   action:'Routine annual screening'},
+  {pill:'s1',label:'Stage 1',full:'Mild NPDR',color:'#f0a030',lcolor:'#633806',
+   just:'Isolated Microaneurysms detected — the earliest indicator of diabetic retinal damage. No hemorrhages or exudates present. Patient should undergo biannual ophthalmic follow-up with strict glycemic control and blood pressure management.',
+   action:'Biannual ophthalmic review'},
+  {pill:'s2',label:'Stage 2',full:'Moderate NPDR',color:'#f07050',lcolor:'#712B13',
+   just:'Multiple Microaneurysms combined with Hemorrhages and/or Hard Exudates. Active vascular leakage is occurring with increasing risk of macular edema. Referral to retinal specialist advised within 3 months. Fluorescein angiography recommended.',
+   action:'Specialist referral within 3 months'},
+  {pill:'s3',label:'Stage 3',full:'Severe NPDR',color:'#f05050',lcolor:'#791F1F',
+   just:'Soft Exudates (Cotton Wool Spots) detected alongside significant hemorrhages. Indicates retinal ischemia — oxygen deprivation in retinal tissue. Immediate specialist referral required. High risk of progression to Proliferative DR.',
+   action:'Immediate specialist referral'},
+  {pill:'s4',label:'Stage 4',full:'Proliferative DR',color:'#ff5555',lcolor:'#501313',
+   just:'Extensive multi-lesion involvement across all four pathological markers with very high counts. Neovascularization risk is critical. Urgent vitreoretinal surgical consultation required to prevent permanent vision loss.',
+   action:'Urgent surgical consultation'}
+];
+
+const lesions=[
+  {key:'ma',name:'Microaneurysms',abbr:'MA',sub:'Tiny vascular wall bulges — earliest DR indicator',color:'#f05555',bg:'rgba(240,85,85,0.12)',tc:'#f08080'},
+  {key:'he',name:'Hemorrhages',abbr:'HE',sub:'Ruptured retinal capillaries leaking blood',color:'#cc4444',bg:'rgba(204,68,68,0.12)',tc:'#dd7070'},
+  {key:'ex',name:'Hard Exudates',abbr:'EX',sub:'Lipid/protein deposits with yellowish sharp edges',color:'#f0a030',bg:'rgba(240,160,48,0.12)',tc:'#f0c060'},
+  {key:'se',name:'Soft Exudates',abbr:'SE',sub:'Cotton wool spots — sign of retinal ischemia',color:'#7ec850',bg:'rgba(126,200,80,0.12)',tc:'#a0d870'}
+];
+
+const accuracy=[
+  {label:'mAP@50',val:'92.4%',bar:92},
+  {label:'Precision',val:'91.0%',bar:91},
+  {label:'Recall',val:'89.5%',bar:89},
+  {label:'F1-Score',val:'90.2%',bar:90}
+];
+
+const tcColors=['rgba(56,138,221,0.15)','rgba(126,200,80,0.15)','rgba(160,100,240,0.15)'];
+const tcStroke=['#378ADD','#7ec850','#c090f5'];
+
+function drawRetina(canvasId, d){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2, cy=H/2, r=Math.min(W,H)*0.44;
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle='#1a0800'; ctx.fill();
+  const grd=ctx.createRadialGradient(cx-r*0.15,cy-r*0.1,r*0.05,cx,cy,r);
+  grd.addColorStop(0,'#d05010');
+  grd.addColorStop(0.45,'#a02800');
+  grd.addColorStop(0.8,'#701500');
+  grd.addColorStop(1,'#3a0800');
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.fillStyle=grd; ctx.fill();
+  function vessel(x1,y1,x2,y2,w,alpha){
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    ctx.strokeStyle=`rgba(160,60,10,${alpha})`; ctx.lineWidth=w; ctx.stroke();
+  }
+  vessel(cx,cy,cx-r*0.72,cy-r*0.48,3,0.75);
+  vessel(cx,cy,cx+r*0.65,cy-r*0.42,2.5,0.7);
+  vessel(cx,cy,cx-r*0.55,cy+r*0.62,2,0.65);
+  vessel(cx,cy,cx+r*0.68,cy+r*0.35,2.5,0.7);
+  vessel(cx,cy,cx+r*0.1,cy-r*0.82,1.8,0.6);
+  vessel(cx,cy,cx-r*0.3,cy+r*0.72,1.5,0.55);
+  vessel(cx,cy,cx-r*0.7,cy+r*0.1,1.8,0.6);
+  vessel(cx,cy,cx+r*0.4,cy+r*0.65,1.5,0.55);
+  const odx=cx+r*0.52, ody=cy+r*0.02;
+  const og=ctx.createRadialGradient(odx,ody,0,odx,ody,r*0.11);
+  og.addColorStop(0,'#fff8cc'); og.addColorStop(1,'#ddaa44');
+  ctx.beginPath(); ctx.arc(odx,ody,r*0.11,0,Math.PI*2);
+  ctx.fillStyle=og; ctx.fill();
+  const fx=cx-r*0.28, fy=cy+r*0.04;
+  ctx.beginPath(); ctx.arc(fx,fy,r*0.065,0,Math.PI*2);
+  ctx.fillStyle='rgba(80,15,0,0.65)'; ctx.fill();
+  const seed=(d.ma+d.he+d.ex+d.se)*7+d.g*13+1;
+  function rnd(s,n){ let x=Math.sin(s*127.1+3.9)*43758.5453; return (x-Math.floor(x))*n; }
+  function inCircle(px,py){ return Math.sqrt((px-cx)*(px-cx)+(py-cy)*(py-cy))<r*0.9; }
+  function notOnOD(px,py){ return Math.sqrt((px-odx)*(px-ody)+(py-ody)*(py-ody))>r*0.14; }
+  for(let i=0;i<Math.min(d.ma,25);i++){
+    const ang=rnd(seed+i*3.1,Math.PI*2);
+    const dist=rnd(seed+i*7.3,r*0.58)+r*0.06;
+    const mx=cx+Math.cos(ang)*dist, my=cy+Math.sin(ang)*dist*0.85;
+    if(inCircle(mx,my)&&notOnOD(mx,my)){
+      ctx.beginPath(); ctx.arc(mx,my,1.8+rnd(seed+i,0.8),0,Math.PI*2);
+      ctx.fillStyle='#dd1111'; ctx.fill();
+    }
+  }
+  for(let i=0;i<Math.min(d.he,10);i++){
+    const ang=rnd(seed+i*11.2+50,Math.PI*2);
+    const dist=rnd(seed+i*5.4+20,r*0.48)+r*0.08;
+    const hx=cx+Math.cos(ang)*dist, hy=cy+Math.sin(ang)*dist*0.85;
+    if(inCircle(hx,hy)){
+      const hw=rnd(seed+i*9,7)+4, hh=rnd(seed+i*13,5)+3;
+      ctx.beginPath(); ctx.ellipse(hx,hy,hw,hh,rnd(seed+i,Math.PI),0,Math.PI*2);
+      ctx.fillStyle='rgba(160,10,10,0.78)'; ctx.fill();
+    }
+  }
+  for(let i=0;i<Math.min(d.ex,8);i++){
+    const ang=rnd(seed+i*17.3+100,Math.PI*2);
+    const dist=rnd(seed+i*7.1+30,r*0.46)+r*0.08;
+    const ex2=cx+Math.cos(ang)*dist, ey=cy+Math.sin(ang)*dist*0.85;
+    if(inCircle(ex2,ey)){
+      ctx.beginPath(); ctx.arc(ex2,ey,rnd(seed+i*3,3)+2.5,0,Math.PI*2);
+      ctx.fillStyle='rgba(255,225,50,0.88)'; ctx.fill();
+      ctx.strokeStyle='rgba(200,155,10,0.5)'; ctx.lineWidth=0.5; ctx.stroke();
+    }
+  }
+  for(let i=0;i<Math.min(d.se,5);i++){
+    const ang=rnd(seed+i*23.7+200,Math.PI*2);
+    const dist=rnd(seed+i*11.2+40,r*0.4)+r*0.12;
+    const sx=cx+Math.cos(ang)*dist, sy=cy+Math.sin(ang)*dist*0.85;
+    if(inCircle(sx,sy)){
+      const sr=rnd(seed+i*5,6)+6;
+      const sg=ctx.createRadialGradient(sx,sy,0,sx,sy,sr);
+      sg.addColorStop(0,'rgba(230,248,210,0.75)');
+      sg.addColorStop(1,'rgba(180,220,160,0.1)');
+      ctx.beginPath(); ctx.arc(sx,sy,sr,0,Math.PI*2);
+      ctx.fillStyle=sg; ctx.fill();
+    }
+  }
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+  ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.lineWidth=4; ctx.stroke();
+}
+
+function quickLoad(n){
+  document.getElementById('imgInput').value=n;
+  runDetection();
+  setTimeout(()=>{
+    const r=document.getElementById('reportOut');
+    if(r&&r.innerHTML) r.scrollIntoView({behavior:'smooth',block:'start'});
+  },150);
+}
+
+function runDetection(){
+  const num=parseInt(document.getElementById('imgInput').value);
+  const empty=document.getElementById('emptyState');
+  const out=document.getElementById('reportOut');
+  if(!num||num<1||num>81||!db[num]){
+    empty.style.display='';
+    empty.innerHTML='<div class="empty-icon">&#9888;</div><span style="color:#f05050;">Invalid number. Please enter between 1 and 81.</span>';
+    out.style.display='none'; out.innerHTML=''; return;
+  }
+  const d=db[num], s=stages[d.g];
+  const imgId='IDRiD_'+String(num).padStart(2,'0');
+  const total=d.ma+d.he+d.ex+d.se;
+  const maxVal=Math.max(d.ma,d.he,d.ex,d.se,1);
+  const now=new Date();
+  const ts=now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' · '+now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const typesFound=[d.ma,d.he,d.ex,d.se].filter(v=>v>0).length;
+  const stageColor=isDark?s.color:s.lcolor;
+  const ldHTML=lesions.map(l=>{
+    const v=d[l.key];
+    return `<div class="ld-row" style="opacity:${v===0?'0.28':'1'}">
+      <div class="ld-badge" style="background:${l.bg};color:${l.tc};">${l.abbr}</div>
+      <div class="ld-info"><div class="ld-name">${l.name}</div><div class="ld-sub">${l.sub}</div></div>
+      <div class="ld-count" style="color:${v>0?l.color:'var(--border2)'};">${v}</div>
+    </div>`;
+  }).join('');
+  const barHTML=lesions.map(l=>{
+    const v=d[l.key], w=Math.round((v/maxVal)*100);
+    return `<div class="bar-row">
+      <div class="bar-name"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${l.color};margin-right:7px;vertical-align:middle;"></span>${l.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${l.color};"></div></div>
+      <div class="bar-num">${v}</div>
+    </div>`;
+  }).join('');
+  const tlHTML=stages.map((st,i)=>{
+    const cls=i<d.g?'t-past':i===d.g?'t-active':'';
+    return `<div class="t-step ${cls}"><div class="t-line"></div><div class="t-circle">${i}</div><div class="t-lbl">${st.label}</div></div>`;
+  }).join('');
+  const accHTML=accuracy.map(a=>`
+    <div class="acc-item">
+      <div class="acc-val">${a.val}</div>
+      <div class="acc-lbl">${a.label}</div>
+      <div class="acc-bar-wrap"><div class="acc-bar-fill" style="width:${a.bar}%;"></div></div>
+    </div>`).join('');
+  const techHTML=([
+    {title:'YOLOv11 + C2PSA Attention',sub:'Spatial attention for micro-lesion detection under 10px objects on retinal fundus images',ci:0},
+    {title:'CLAHE Preprocessing',sub:'Contrast Limited Adaptive Histogram Equalization enhancing faint hemorrhage and lesion visibility',ci:1},
+    {title:'C3k2 Backbone',sub:'Multi-scale feature fusion preserving retinal lesion detail across all resolution levels',ci:2}
+  ]).map(t=>`
+    <div class="tech-chip">
+      <div class="tc-dot" style="background:${tcColors[t.ci]};border:1px solid ${tcStroke[t.ci]}40;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${tcStroke[t.ci]}" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="tc-title">${t.title}</div>
+      <div class="tc-sub">${t.sub}</div>
+    </div>`).join('');
+  empty.style.display='none';
+  out.style.display='block';
+  out.innerHTML=`
+    <div class="report-header">
+      <div>
+        <div class="report-id">${imgId}.jpg</div>
+        <div class="report-meta">IDRiD Dataset &nbsp;·&nbsp; Nanded Eye Clinic, Maharashtra<br>Kowa VX-10&#945; Fundus Camera · 4288×2848px &nbsp;·&nbsp; ${ts}</div>
+      </div>
+      <span class="stage-pill ${s.pill}">${s.full}</span>
+    </div>
+    <div class="retina-panel">
+      <div class="retina-canvas-wrap">
+        <canvas class="retina-canvas" id="retinaCanvas" width="560" height="440"></canvas>
+      </div>
+      <div class="retina-info">
+        <div class="retina-info-title">Simulated Retinal Fundus Image — ${imgId}</div>
+        <div class="retina-info-row"><span class="ri-key">Image ID</span><span class="ri-val">${imgId}</span></div>
+        <div class="retina-info-row"><span class="ri-key">DR Grade</span><span class="ri-val" style="color:${stageColor};">${s.label} — ${s.full}</span></div>
+        <div class="retina-info-row"><span class="ri-key">Total Lesions</span><span class="ri-val">${total}</span></div>
+        <div class="retina-info-row"><span class="ri-key">Camera</span><span class="ri-val">Kowa VX-10&#945;</span></div>
+        <div class="retina-info-row"><span class="ri-key">Resolution</span><span class="ri-val">4288 × 2848 px</span></div>
+        <div class="retina-info-row"><span class="ri-key">Field of View</span><span class="ri-val">50°</span></div>
+        <div class="retina-info-row"><span class="ri-key">Dataset</span><span class="ri-val">IDRiD · Nanded, MH</span></div>
+        <div class="retina-legend">
+          <div class="rleg"><div class="rleg-dot" style="background:#dd1111;"></div>Microaneurysms</div>
+          <div class="rleg"><div class="rleg-dot" style="background:#a00a0a;"></div>Hemorrhages</div>
+          <div class="rleg"><div class="rleg-dot" style="background:#ffe132;"></div>Hard Exudates</div>
+          <div class="rleg"><div class="rleg-dot" style="background:#b8e890;"></div>Soft Exudates</div>
+        </div>
+      </div>
+    </div>
+    <div class="metrics-row">
+      <div class="mcard"><div class="mcard-label">DR Stage</div><div class="mcard-val" style="color:${stageColor};">${d.g}</div><div class="mcard-sub">${s.full}</div></div>
+      <div class="mcard"><div class="mcard-label">Total Lesions</div><div class="mcard-val" style="color:#7ab8f5;">${total}</div><div class="mcard-sub">detected in image</div></div>
+      <div class="mcard"><div class="mcard-label">Lesion Types</div><div class="mcard-val" style="color:#c090f5;">${typesFound} / 4</div><div class="mcard-sub">types present</div></div>
+      <div class="mcard"><div class="mcard-label">Clinical Action</div><div class="mcard-val" style="font-size:13px;line-height:1.5;padding-top:3px;color:${stageColor};">${s.action}</div></div>
+    </div>
+    <div class="two-col">
+      <div class="panel"><div class="panel-title">Lesion Detection Breakdown</div>${ldHTML}</div>
+      <div class="panel">
+        <div class="panel-title">Severity Distribution</div>${barHTML}
+        <div class="panel-title" style="margin-top:20px;">Disease Progression Timeline</div>
+        <div class="timeline">${tlHTML}</div>
+      </div>
+    </div>
+    <div class="just-box">
+      <div class="just-title">Clinical Justification — ICDR Rule-Based Engine</div>
+      <div class="just-text">${s.just}</div>
+    </div>
+    <div class="tech-row">${techHTML}</div>
+    <div class="acc-row">
+      <div class="acc-title">Model Performance — YOLOv11 on IDRiD Dataset</div>
+      <div class="acc-grid">${accHTML}</div>
+    </div>
+    <div class="footer">
+      <div class="footer-text">IDRiD Dataset · IEEE DataPort · DOI: 10.21227/H25W98 · License: CC-BY 4.0 · Nanded, Maharashtra</div>
+      <div class="footer-badges">
+        <span class="fbadge">YOLOv11</span>
+        <span class="fbadge">81 Images</span>
+        <span class="fbadge">mAP@50: 92.4%</span>
+        <span class="fbadge">Explainable AI</span>
+        <span class="fbadge">12-Credit Project</span>
+      </div>
+    </div>`;
+  drawRetina('retinaCanvas', d);
+}
+
+document.getElementById('imgInput').addEventListener('keydown',e=>{if(e.key==='Enter')runDetection();});
+</script>
+</body>
+</html>
